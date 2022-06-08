@@ -1,0 +1,9 @@
+
+syntax = "proto3";
+
+package platform;
+
+option go_package = "github.com/eveldcorp/waypoint-plugin-noop/platform";
+
+message Deployment {
+}
