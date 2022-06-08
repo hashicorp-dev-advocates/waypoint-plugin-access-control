@@ -3,6 +3,7 @@ module github.com/eveldcorp/waypoint-plugin-noop
 go 1.17
 
 require (
+	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/waypoint-plugin-sdk v0.0.0-20211012192505-5c78341a47e4
 	google.golang.org/protobuf v1.26.0
 )
@@ -24,7 +25,6 @@ require (
 	github.com/gookit/color v1.3.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-argmapper v0.2.3 // indirect
-	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/hashicorp/go-plugin v1.4.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.6.0 // indirect
