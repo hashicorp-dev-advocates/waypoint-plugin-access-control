@@ -3,7 +3,8 @@ syntax = "proto3";
 
 package platform;
 
-option go_package = "github.com/eveldcorp/waypoint-plugin-noop/platform";
+option go_package = "github.com/hashicorp-dev-advocates/waypoint-plugin-access-control/platform";
 
 message Deployment {
+  string policy_name = 1;
 }

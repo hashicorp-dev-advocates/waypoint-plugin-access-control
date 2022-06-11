@@ -45,7 +45,7 @@ function process() {
   # Remove backup files
   find $2 -name *.bak -exec rm -rf {} \;
 
-  # Remove go.sum
+  # Remove go.sum.bak
   rm -f $1/go.sum
 }
 

@@ -1,9 +1,7 @@
 package main
 
 import (
-	"github.com/eveldcorp/waypoint-plugin-noop/builder"
-	"github.com/eveldcorp/waypoint-plugin-noop/platform"
-	"github.com/eveldcorp/waypoint-plugin-noop/release"
+	"github.com/hashicorp-dev-advocates/waypoint-plugin-access-control/platform"
 	sdk "github.com/hashicorp/waypoint-plugin-sdk"
 )
 
@@ -15,8 +13,8 @@ func main() {
 	sdk.Main(sdk.WithComponents(
 		// Comment out any components which are not
 		// required for your plugin
-		&builder.Builder{},
+		//&builder.Builder{},
 		&platform.Platform{},
-		&release.ReleaseManager{},
+		//&release.ReleaseManager{},
 	))
 }

@@ -1,4 +1,4 @@
-PLUGIN_NAME=noop
+PLUGIN_NAME=access-control
 
 ifndef _ARCH
 _ARCH := $(shell ./print_arch)
