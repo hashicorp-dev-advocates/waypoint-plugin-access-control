@@ -1,75 +1,118 @@
-# Waypoint Plugin Template
+# Waypoint Plugin Vault policy
 
-This folder contains an example plugin structure which can be used when building your own plugins.
+This plugin for HashiCorp Waypoint creates policies for HashiCorp Vault so security teams can configure Vault roles to assist developer with incident response. The idea behind this plugin is that developers can specify which underlying pieces of infrastructure they would need access to in the event of an incident or outage. Security teams can then take these policies and create Vault roles according to their organisation's security posture.
 
-## Steps
+The plugin has two main constructs:
+1. **Triggers** - This specifies what should trigger access to the underlying infrastructure. This could be event driven for specific environments, manual for other environments and automatic for any scenarios that your organisation sees fit. It also specifies which teams should be granted access to the underlying infrastructure for the event driven options.
+2. **Access** - This specifies what pieces of underlying infrastructure that developers will need access to in an incident scenario.
 
-1. To scaffold a new plugin use the `./clone.sh` script passing the destination folder and the Go package
-for your new plugin as parameters
+## Example usage
 
-```shell
-./clone.sh myplugin ../destination_folder github.com/myorg/mypackage
+```hcl
+project = "hello-world"
+
+app "access" {
+  deploy {
+    use "access-control" {
+      # Which event should trigger the access configurator?
+      trigger {
+        config {
+          platform = "pager-duty"
+          event    = "hello-world-down" # Event to listen out
+          teams = [
+            "hello-world-devs", # The person that deployed app
+            "hello-world-ops",
+          ]
+
+        }
+        environment = "production"
+        approval = "alert"
+      
+      }
+
+      trigger {
+        config {}
+        approval = "manual" # Manual, automatic or alert
+        environment = "dev"
+      
+      }
+  
+      #What access should be granted
+
+      access {
+        database = "bye-world-db"
+        role     = "bye-world-db-read"
+      }
+
+      access {
+        database = "hello-world-db"
+        role     = "hello-world-db-read"
+      }
+
+      access {
+        cloud = "aws"
+        role = "aws-cloud-read"
+      }
+
+    }
+  }
+
+  build {
+    use "noop" {}
+  }
+}
 ```
 
-2. You can then run the Makefile to compile the new plugin, the `Makefile` will build the plugin for all architectures.
+The above example will create and write the following policies to Vault:
 
-```shell
-cd ../destination_folder
+```hcl
+# bye-world-db-read.hcl
 
-make
+path "bye-world-db/creds/bye-world-db-read" {
+   capabilities = [
+      "read"
+   ]
+}
 ```
 
-```shell
-Build Protos
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./builder/output.proto
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./registry/output.proto
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./platform/output.proto
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./release/output.proto
+```hcl
+# hello-world-db-read.hcl
 
-Compile Plugin
-# Clear the output
-rm -rf ./bin
-GOOS=linux GOARCH=amd64 go build -o ./bin/linux_amd64/waypoint-plugin-mytest ./main.go 
-GOOS=darwin GOARCH=amd64 go build -o ./bin/darwin_amd64/waypoint-plugin-mytest ./main.go 
-GOOS=windows GOARCH=amd64 go build -o ./bin/windows_amd64/waypoint-plugin-mytest.exe ./main.go 
-GOOS=windows GOARCH=386 go build -o ./bin/windows_386/waypoint-plugin-mytest.exe ./main.go 
+path "hello-world-db/creds/hello-world-db-read" {
+   capabilities = [
+      "read"
+   ]
+}
 ```
 
-## Building with Docker
+```hcl
+# aws-cloud-read.hcl
 
-To build plugins for release you can use the `build-docker` Makefile target, this will 
-build your plugin for all architectures and create zipped artifacts which can be uploaded
-to an artifact manager such as GitHub releases.
-
-The built artifacts will be output in the `./releases` folder.
-
-```shell
-make build-docker
-
-rm -rf ./releases
-DOCKER_BUILDKIT=1 docker build --output releases --progress=plain .
-#1 [internal] load .dockerignore
-#1 transferring context: 2B done
-#1 DONE 0.0s
-
-#...
-
-#14 [export_stage 1/1] COPY --from=build /go/plugin/bin/*.zip .
-#14 DONE 0.1s
-
-#15 exporting to client
-#15 copying files 36.45MB 0.1s done
-#15 DONE 0.1s
+path "aws-cloud/creds/aws-cloud-read" {
+   capabilities = [
+      "read"
+   ]
+}
 ```
 
-## Building and releasing with GitHub Actions
+## Waypoint runner dependencies
 
-When cloning the template a default GitHub Action is created at the path `.github/workflows/build-plugin.yaml`. You can use this action to automatically build and release your plugin.
+This plugin will need to be able to authenticate with Vault to write these policies so it will need the Vault address and an access token with the below policy attached:
 
-The action has two main phases:
-1. **Build** - This phase builds the plugin binaries for all the supported architectures. It is triggered when pushing
-   to a branch or on pull requests.
-1. **Release** - This phase creates a new GitHub release containing the built plugin. It is triggered when pushing tags
-   which starting with `v`, for example `v0.1.0`.
+```hcl
+# waypoint-runner.hcl
 
-You can enable this action by clicking on the `Actions` tab in your GitHub repository and enabling GitHub Actions.
+path "/sys/policy/*" {
+   capabilities = [
+      "write"
+   ]
+}
+```
+
+Once you have created a Vault token with the above policy, you will need to pass the following environment variables to the Waypoint runner:
+- `VAULT_ADDR`
+- `VAULT_TOKEN`
+- `VAULT_NAMESPACE` (optional)
+
+The Waypoint runner can also be configured using our [Terraform Provider for Waypoint.](https://github.com/hashicorp-dev-advocates/terraform-provider-waypoint)
+
