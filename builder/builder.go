@@ -4,41 +4,72 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/waypoint-plugin-sdk/component"
 	"github.com/hashicorp/waypoint-plugin-sdk/terminal"
 )
 
-type BuildConfig struct {
-}
-
 type Builder struct {
-	config BuildConfig
+	VaultAddr         string
+	VaultToken        string
+	VaultNamespace    string
+	GrafanaAddr       string
+	GrafanaDatasource string
+	config            Config
 }
 
-// Implement Configurable
 func (b *Builder) Config() (interface{}, error) {
 	return &b.config, nil
 }
 
-// Implement ConfigurableNotify
 func (b *Builder) ConfigSet(config interface{}) error {
-	_, ok := config.(*BuildConfig)
+	_, ok := config.(*Config)
 	if !ok {
-		// The Waypoint SDK should ensure this never gets hit
-		return fmt.Errorf("Expected *BuildConfig as parameter")
+		return fmt.Errorf("expected *Config as parameter")
+	}
+
+	for _, trigger := range b.config.Trigger {
+		switch trigger.Approval {
+		case
+			"manual",
+			"automatic",
+			"alert":
+		default:
+			return fmt.Errorf("invalid value set for approval. must be set to `manual`, `automatic`, or `alert`")
+		}
+
+		if trigger.Environment == "" {
+			return fmt.Errorf("environment must be set")
+		}
+	}
+
+	for _, access := range b.config.Access {
+		if access.Cloud != "" && access.Account == "" {
+			return fmt.Errorf("`account` must be set when configuring `cloud` access")
+		}
+
+		if access.Role == "" {
+			return fmt.Errorf("valid `role` in vault must be set")
+		}
 	}
 
 	return nil
 }
 
-// Implement Builder
 func (b *Builder) BuildFunc() interface{} {
 	return b.build
 }
 
-func (b *Builder) build(ctx context.Context, ui terminal.UI) (*Binary, error) {
+func (b *Builder) build(ctx context.Context, ui terminal.UI, job *component.JobInfo) (*Output, error) {
 	u := ui.Status()
 	defer u.Close()
-	u.Update("Setting up access controls")
 
-	return &Binary{}, nil
+	for _, trigger := range b.config.Trigger {
+		b.CreateAlert(job.Project, trigger)
+	}
+
+	for _, access := range b.config.Access {
+		b.CreatePolicy(access)
+	}
+
+	return &Output{}, nil
 }

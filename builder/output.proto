@@ -5,5 +5,5 @@ package builder;
 
 option go_package = "github.com/hashicorp-dev-advocates/waypoint-plugin-access-control/builder";
 
-message Binary {
+message Output {
 }
